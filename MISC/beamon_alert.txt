@@ -1,0 +1,50 @@
+#!/usr/local/bin/bash 
+## logger command add infomation to that file
+
+
+tail -fn0 /var/log/ipsec0[1-8] |\
+while read line ; do 
+if grep -q --line-buffereed "Established to Idle"
+
+then 
+    echo "Bgp session(s)has failed for one or more users on IPSS. P;ease confirm this alert by logging into IPSS" > /home/jbeamon/bgpdown.txt
+    chown 755 /home/jbeamon/bgpdown.txt
+    chown jbeamon:jbeamon /home/jbeamon/bgpdown.txt 
+        logger "bgpwatch.sh: BGP session(s) has failed for one or more users on IPSS"
+    scp -i /root/.ssh/jbeamon_rsa /home/jbeamon/bgpdown.txt jbeamon@emp01:/home/jbeamon/bgpdown
+        if [ "$?" -ne "0" ]; then logger "bgpwatch.sh: unable to scp /home/jbeamon/bgpdown.txt jbeamon@emp01:/home/jbeamon" ; fi 
+    ssh -i /root/.ssh/jbeamon_rsa jbeamon@emp01 sh /home/jbeamon/notify.sh 
+fi
+
+if grep -q --line-buffereed "Openconfirm to Established"
+
+then 
+    echo "BGP session(s) has been restored for one or more users on IPSS.  Please confirm user(s) have returned to an operational state" > /home/jbeamon/bgpup.txt
+    chown 755 /home/jbeamon/bgpup.txt 
+    chown jbeamon:jbeamon /home/jbeamon/bgpup.txt
+        logger "bgpwatch.sh BGP session(s) has been restored for one or more users on IPSS"
+    scp -i /root/.ssh/jbeamon_rsa /home/jbeamon/bgpup.txt jbeamon@emp01:/home/jbeamon
+        if [ "$?" -ne "0" ] ; then logger "bgpwatch.sh: unable to scp /home/jbeamon/bgpdown.txt jbeamon@emp01:/home/jbeamon" ; fi 
+    ssh -i /root/.ssh/jbeamon_rsa jbeamon@emp01 sh /home/jbeamon/notify.sh
+fi 
+
+done
+
+###############################################################################################
+###############################################################################################
+#!/usr/local/bin/bash 
+
+if [ -e /home/jbeamon/bgpdown.txt ];
+then 
+    mail -s "BGP down in IPSS" B3Alerts@centurylink.com < bgpdown.txt |\
+if [ "$?" -ne "0" ]; then logger "notify.sh unable to BGP down in IPSS email"; fi
+    rm /home/jbeamon/bgpdown.txt;
+fi
+if [ -e /home/jbeamon/bgpup.txt ] ;
+then
+    mail -s "BGP up in IPSS" B3Alerts@centurylink.com < bgpup.txt |\
+if [ "$?" -ne "0" ]; then logger "notify.sh unable to BGP up in IPSS email"; fi 
+    rm /home/jbeamon/bgpup.txt;
+fi
+
+    
