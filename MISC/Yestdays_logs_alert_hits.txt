@@ -1,0 +1,123 @@
+#!/usr/local/bin/bash 
+
+CUST=`cat /usr/local/etc/customer.conf | grep -V '^#' | awk -F ' ' '{print $2}' | sort -u | grep -v '^Qwest$' | grep -v '^Test$' | grep - v '^CTLMON$'`
+
+echo "---------------------------"
+echo "EMAIL HITS"
+echo "---------------------------"
+zcat /var/tmp/tmpmail/DIB-copy.0.gz |
+        /usr/local/bin/pcregrep -o1 "CUSTOMER NAME SMTP FOR ([\w-}+$' |
+        sort | uniq -c | awk -F' ' '{print $2,$1}'
+echo "---------------------------"
+echo ""
+
+echo "---------------------------"
+echo "SMTP IN###### SUMMARY"
+echo "---------------------------"
+for i in $CUST; do 
+        COUNT=`zcat /var/tmp/tmpmail/DIB-copy.0.gz | 
+                grep -A 3 "CUSTOMER NAME SMTP NOTIFICATION FOR $i$" |
+                /usr/local/bin/pcregrep -o1 '\d\{4}-\d{2}-\d{2} \d{2}:\d{2}.*\s+([^\s]+)$' | sort |uniq -c`
+        if [ ! -z "$COUNT" ] ; then 
+            echo $i
+            echo $COUNT
+        fi
+done
+echo "----------------------------"
+echo ""
+
+
+
+echo "----------------------------"
+echo "DNS ONLY HITS"
+echo "----------------------------"
+for i in $CUST; do 
+        COUNT=`zcat /var/tmp/tmpmail/DIB-copy.0.gz | 
+            /usr/local/bin/pcregrep -A 4 "CUSTOMER NAME DNS NOTIFICATION FOR $i$" |
+            /usr/local/bin/pcregrep '\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\s+\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\s+0\s+0\s+          [0-9A-Za-z]+S' |
+            wc -l`
+        if [ $COUNT -gt 0 ]; then 
+            echo $i $COUNT
+        fi
+done
+echo "----------------------------"
+echo ""
+
+
+echo "------------------------------"
+echo "SAFE ONLY HITS"
+echo "------------------------------"
+for i in $CUST; do
+        COUNT=`zcat /var/tmp/tmpmail/DIB-copy.0.gz |
+            /usr/local/bin/pcregrep -A 4 "CUSTOMER NAME DNS NOTIFICATION FOR $i$" |
+            /usr/local/bin/pcregrep '\d{4}-d{2}-\d{2}\s\d{2}:\d{2}:\d{2}\s+\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\s+\d+\s+\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\s+\d+\s+$' |
+            wc -l`
+        if [ $COUNT -gt 0 ]; then 
+            echo $i $COUNT
+        fi
+done
+echo "------------------------------"
+echo ""
+
+echo "------------------------------"
+echo "DNS w/ SAFE HITS"
+echo "------------------------------"
+for i in $CUST; do 
+        COUNT=`zcat /var/tmp/tmpmail/DIB-copy.0.gz |
+            /usr/local/bin/pcregrep -A 4 "CUSTOMER NAME DNS NOTIFICATION FOR $i$" |
+            /usr/local/bin/pcregrep '\d{4}-d{2}-\d{2}\s\d{2}:\d{2}:\d{2}\s+\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\s+\d+\s+\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\s+\d+\s+$' |
+            wc -l`
+        if [ $COUNT -gt 0 ]; then 
+            echo $i $COUNT
+        fi
+done
+echo "----------------------------"
+echo ""
+
+
+echo "------------------------------"
+echo "DNS IN###### SUMMARY BY D/A"
+echo "------------------------------"
+for i in $CUST; do 
+        COUNT=`zcat /var/tmp/tmpmail/DIB-copy.0.gz |
+                grep -A 3 "CUSTOMER NAME DNS NOTIFICATION FOR $i$" |
+                /usr/local/bin/pcregrep -o1 '\d\{4}-\d{2}-\d{2} \d{2}:\d{2}.*\s+([^\s]+)$' | sort |uniq -c`
+        if [! -z "$COUNT" ] ; then 
+            echo $i
+            echo $COUNT
+        fi
+done
+echo "------------------------------"
+echo""
+
+echo "------------------------------"
+echo DNS IN###### SUMMARY BY ID"
+echo "------------------------------"
+zcat /var/tmp/tmpmail/DIB-copy.0.gz |
+        grep -A 3 "CUSTOMER NAME DNS NOTIFICATION FOR" |
+        /usr/local/bin/pcregrep -A -3 "CUSTOMER NAME DNS NOTIFICATIONFOR (?!Test|Qwest|CTLMON)" |
+        /usr/local/bin/pcregrep -o1 '\d\{4}-\d{2}-\d{2} \d{2}:\d{2}.*\s+([^\s]+)$' | sort |uniq -c
+echo "------------------------------"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

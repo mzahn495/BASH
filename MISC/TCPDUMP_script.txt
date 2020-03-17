@@ -1,0 +1,190 @@
+#!/usr/local/bin/bash
+# Created: Michael Zahn
+# Date: December 12, 2017
+#
+# The purpose of this script pull information from the customer.conf ans parse the D/A ip address into tcpdump syntax.
+# The information gather and places into 3 files (cust_tcpdumps_igb0, cust_tcpdumps_em0, cust_tcpdumps_bge0), then from the 
+# file the script grep's information from the file and places tcpdump into individual D/A.
+# Script for DNSP05-08
+
+#Removing template so to allow updates that were placed in the customer.conf 
+#rm /home/mzahn/bin/file1
+rm -f /home/syscheck/bin/cust_tcpdumps_igb0
+rm -f /home/syscheck/bin/tcpdump_igb0/*
+echo "***************************Removing tcpdumps in tcpdump_igb0 directory**************************************"
+rm -f /home/syscheck/bin/cust_tcpdumps_em0
+rm -f /home/syscheck/bin/tcpdumps_em0/*
+echo "***************************Removing tcpdumps in tcpdump_em0 directory**************************************"
+rm -f /home/syscheck/bin/cust_tcpdumps_bge0
+rm -f /home/syscheck/bin/tcpdumps_bge0/*
+echo "***************************Removing tcpdumps in tcpdump_bge directory**************************************"
+
+echo "Starting rebuild of tcpdump flat files and tcpdumps templates *********************************************"
+
+for c in `cat /usr/local/etc/customer.conf | grep -v ^# | pcregrep -v '^\s+?$' | awk '{print $2}' | sort -u`; do 
+   IPRANGE=`cat /usr/local/etc/customer.conf | pcregrep "\s+$c\s?$" | awk '{print $1}' | pcregrep '^[0-9\.\/]+$'`
+   
+   NUM='#'
+   TCPDUMP='tcpdump -ni igb0'
+   TCPDUMP1='tcpdump -ni em0'
+   TCPDUMP2='tcpdump -ni bge0'
+   
+   for i in $IPRANGE; do 
+      QUERY="${QUERY} net $ i or"
+   done
+   
+   QUERY=`echo $QUERY | sed -e 's/ or$//'`
+   QUERY+='\) and \(host 204.131.205.129 or host 204.131.205.130 or host 204.131.205.131 or host 204.131.205.132\)'
+   
+   #echo -n "$NUM "$c >> /var/scripts/cust_tcpdumps_bge0
+   #echo -e "\n" >> /var/scripts/cust_tcpdumps 
+   echo "NUM $c $TCPDUMP $QUERY" >> /home/syscheck/bin/cust_tcpdumps_igb0
+   echo "NUM $c $TCPDUMP $QUERY" >> /home/syscheck/bin/cust_tcpdumps_em0
+   echo "NUM $c $TCPDUMP $QUERY" >> /home/syscheck/bin/cust_tcpdumps_bge0
+   
+ls done
+
+################Set for TCPDUMPS DNSP01-04
+for cust in `cat /usr/local/etc/customer.conf | grep -v ^# | pcregrep -v '^\s+?$' | awk '{print $2}' | sort -u`; do 
+    `touch /home/syscheck/bin/tcpdumps_igb0/$cust | echo -e "#!/usr/local/bin/bash\n" > /home/syscheck/bin/tcpdumps_igb0/$cust | echo
+	"## "$cust >> /home/syscheck/bin/tcpdumps_igb0/$cust | grep "$cust " /home/syscheck/bin/cust_tcpdumps_igb0 | sed "s/# $cust //g"
+	>> /home/syscheck/bin/tcpdumps_igb0/$cust`
+	
+done
+
+sleep 2
+
+###############Set for DNSP05 Really the only fucking one with em0!
+for cust in `cat /usr/local/etc/customer.conf | grep -v ^# | pcregrep -v '^\s+?$' | awk '{print $2}' | sort -u`; do 
+    `touch /home/syscheck/bin/tcpdumps_em0/$cust | echo -e "#!/usr/local/bin/bash\n" > /home/syscheck/bin/tcpdumps_em0/$cust | echo
+	"## "$cust >> /home/syscheck/bin/tcpdumps_em0/$cust | grep "$cust " /home/syscheck/bin/cust_tcpdumps_em0 | sed "s/# $cust //g"
+	>> /home/syscheck/bin/tcpdumps_em0/$cust`
+	
+
+done
+
+sleep 2
+
+for cust in `cat /usr/local/etc/customer.conf | grep -v ^# | pcregrep -v '^\s+?$' | awk '{print $2}' | sort -u`; do 
+    `touch /home/syscheck/bin/tcpdumps_bge0/$cust | echo -e "#!/usr/local/bin/bash\n" > /home/syscheck/bin/tcpdumps_bge0/$cust | echo
+	"## "$cust >> /home/syscheck/bin/tcpdumps_bge0/$cust | grep "$cust " /home/syscheck/bin/cust_tcpdumps_bge0 | sed "s/# $cust //g"
+	>> /home/syscheck/bin/tcpdumps_bge0/$cust`
+	    chmod 500 /home/syscheck/bin/tcpdumps_bge0/*
+
+done
+
+################Permission changes
+chmod 700 /home/syscheck/bin/tcpdump_igb0/*
+chmod 700 /home/syscheck/bin/tcpdumps_em0/*
+chmod 700 /home/syscheck/bin/tcpdumps_bge0/*
+
+##########Current tcpdump will have to be removed prior to scp push out.
+echo "**************************ADDING TCP SCRIPTS DNSP01*********************"
+echo "**************************ADDING TCP SCRIPTS DNSP01*********************"
+echo "**************************ADDING TCP SCRIPTS DNSP01*********************"
+sleep 2
+scp tcpdump_igb0/* dnsp01:/var/scripts/
+
+echo "**************************ADDING TCP SCRIPTS DNSP02*********************"
+echo "**************************ADDING TCP SCRIPTS DNSP02*********************"
+echo "**************************ADDING TCP SCRIPTS DNSP02*********************"
+sleep 2
+scp tcpdump_igb0/* dnsp02:/var/scripts/
+
+echo "**************************ADDING TCP SCRIPTS DNSP03*********************"
+echo "**************************ADDING TCP SCRIPTS DNSP03*********************"
+echo "**************************ADDING TCP SCRIPTS DNSP03*********************"
+sleep 2
+scp tcpdump_igb0/* dnsp03:/var/scripts/
+
+echo "**************************ADDING TCP SCRIPTS DNSP04*********************"
+echo "**************************ADDING TCP SCRIPTS DNSP04*********************"
+echo "**************************ADDING TCP SCRIPTS DNSP04*********************"
+sleep 2
+scp tcpdump_igb0/* dnsp04:/var/scripts/
+
+echo "**************************ADDING TCP SCRIPTS DNSP05*********************"
+echo "**************************ADDING TCP SCRIPTS DNSP05*********************"
+echo "**************************ADDING TCP SCRIPTS DNSP05*********************"
+sleep 2
+scp tcpdump_em0/* dnsp05:/var/scripts/
+
+echo "**************************ADDING TCP SCRIPTS DNSP06*********************"
+echo "**************************ADDING TCP SCRIPTS DNSP06*********************"
+echo "**************************ADDING TCP SCRIPTS DNSP06*********************"
+sleep 2
+scp tcpdump_bge0/* dnsp06:/var/scripts/
+
+echo "**************************ADDING TCP SCRIPTS DNSP07*********************"
+echo "**************************ADDING TCP SCRIPTS DNSP07*********************"
+echo "**************************ADDING TCP SCRIPTS DNSP07*********************"
+sleep 2
+scp tcpdump_bge0/* dnsp07:/var/scripts/
+
+echo "**************************ADDING TCP SCRIPTS DNSP08*********************"
+echo "**************************ADDING TCP SCRIPTS DNSP08*********************"
+echo "**************************ADDING TCP SCRIPTS DNSP08*********************"
+sleep 2
+scp tcpdump_bge0/* dnsp08:/var/scripts/
+
+echo "**************************ADDING TCP SCRIPTS DNSfo01*********************"
+echo "**************************ADDING TCP SCRIPTS DNSfo01*********************"
+echo "**************************ADDING TCP SCRIPTS DNSfo01*********************"
+sleep 2
+scp tcpdump_bge0/* dnsp06:/var/scripts/
+
+echo "**************************ADDING TCP SCRIPTS DNSfo02*********************"
+echo "**************************ADDING TCP SCRIPTS DNSfo02*********************"
+echo "**************************ADDING TCP SCRIPTS DNSfo02*********************"
+sleep 2
+scp tcpdump_bge0/* dnsp02:/var/scripts/
+
+echo "**************************ADDING TCP SCRIPTS DNSfo03*********************"
+echo "**************************ADDING TCP SCRIPTS DNSfo03*********************"
+echo "**************************ADDING TCP SCRIPTS DNSfo03*********************"
+sleep 2
+scp tcpdump_bge0/* dnsp03:/var/scripts/
+
+echo "**************************ADDING TCP SCRIPTS DNSfo04*********************"
+echo "**************************ADDING TCP SCRIPTS DNSfo04*********************"
+echo "**************************ADDING TCP SCRIPTS DNSfo04*********************"
+sleep 2
+scp tcpdump_bge0/* dnsp04:/var/scripts/
+
+echo "**************************ADDING TCP SCRIPTS DNSfo05*********************"
+echo "**************************ADDING TCP SCRIPTS DNSfo05*********************"
+echo "**************************ADDING TCP SCRIPTS DNSfo05*********************"
+sleep 2
+scp tcpdump_bge0/* dnsp05:/var/scripts/
+
+echo "**************************ADDING TCP SCRIPTS DNSfo06*********************"
+echo "**************************ADDING TCP SCRIPTS DNSfo06*********************"
+echo "**************************ADDING TCP SCRIPTS DNSfo06*********************"
+sleep 2
+scp tcpdump_bge0/* dnsp06:/var/scripts/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
